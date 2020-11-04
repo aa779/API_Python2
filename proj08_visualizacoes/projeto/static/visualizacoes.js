@@ -46,123 +46,118 @@ $(function () {
           return response.json()
 
           .then(function (json) {
+            $('#container-charts').empty();
 
             let sensores = json.resources;
             sensores.forEach(function (sensor) {
-              $('#container-charts').empty();
 
               sensor.params.split(",")
                 .forEach(function (param) {
 
-                  let container_id = `container-${sensor.id}-${param}`;
+                  let container_param = `container-${sensor.id}-${param}`;
+                  $('#container-charts').append(`<div id="${container_param}"></div>`);
 
-                  $('#container-charts').append(`<div id=${container_id}></div>`);
+                  Highcharts.chart(container_param, {
+                    chart: {
+                      type: 'area',
+                      animation: Highcharts.svg, // don't animate in old IE
+                      marginRight: 10,
+                      events: {
+                        load: function () {
 
-                  $(`#${container_id}`).append(
-                    Highcharts.chart(container_id, {
-                      chart: {
-                        type: 'area',
-                        animation: Highcharts.svg, // don't animate in old IE
-                        marginRight: 10,
-                        events: {
-                          load: function () {
+                          // set up the updating of the chart each second
+                          setInterval(function () {
+                            fetch(`${url_base}/sensor/${sensor.id}/${param}/last`)
+                              .then(function(response) {
+                                var contentType = response.headers.get('content-type');
+                                if (contentType && contentType.indexOf("application/json") !== -1) {
+                                  return response.json()
 
-                            serie = this.series[0];
-                            serie.name = param;
+                                  .then(function(json) {
+                                    // seconds (python) to milliseconds (js)
+                                    var x = json.resource.datahora * 1000;
+                                    var y = parseFloat(json.resource.valor);
+                                    // console.log(serie.name, x, y);
 
-                            // set up the updating of the chart each second
-                            setInterval(function () {
-                              fetch(`${url_base}/sensor/${sensor.id}/${param}/last`)
-                                .then(function(response) {
-                                  var contentType = response.headers.get('content-type');
-                                  if (contentType && contentType.indexOf("application/json") !== -1) {
-                                    return response.json()
+                                    this.series[0].addPoint([x, y], true, true);
+                                  }); // end then
+                                }     // end if
+                              });     // end then
+                          }, 1000);   // end setInterval
 
-                                    .then(function(json) {
-                                      // seconds (python) to milliseconds (js)
-                                      var x = json.resource.datahora * 1000;
-                                      var y = parseFloat(json.resource.valor);
-
-                                      serie.addPoint([x, y], true, true);
-                                    }); // end then
-                                  }     // end if
-                                });     // end then
-                            }, 1000);   // end setInterval
-
-                          }
                         }
-                      },
+                      }
+                    },
 
-                      time: {
-                          useUTC: false
-                      },
+                    time: {
+                        useUTC: false
+                    },
 
-                      title: {
-                          text: 'Live random data'
-                      },
+                    title: {
+                        text: 'Live random data'
+                    },
 
-                      accessibility: {
-                          announceNewData: {
-                              enabled: true,
-                              minAnnounceInterval: 15000,
-                              announcementFormatter: function (allSeries, newSeries, newPoint) {
-                                  if (newPoint) {
-                                      return 'New point added. Value: ' + newPoint.y;
-                                  }
-                                  return false;
-                              }
-                          }
-                      },
+                    accessibility: {
+                        announceNewData: {
+                            enabled: true,
+                            minAnnounceInterval: 15000,
+                            announcementFormatter: function (allSeries, newSeries, newPoint) {
+                                if (newPoint) {
+                                    return 'New point added. Value: ' + newPoint.y;
+                                }
+                                return false;
+                            }
+                        }
+                    },
 
-                      xAxis: {
-                          type: 'datetime',
-                          tickPixelInterval: 150
-                      },
+                    xAxis: {
+                        type: 'datetime',
+                        tickPixelInterval: 150
+                    },
 
-                      yAxis: {
-                          title: {
-                              text: 'Value'
-                          },
-                          plotLines: [{
-                              value: 0,
-                              width: 1,
-                              color: '#808080'
-                          }]
-                      },
+                    yAxis: {
+                        title: {
+                            text: 'Value'
+                        },
+                        plotLines: [{
+                            value: 0,
+                            width: 1,
+                            color: '#808080'
+                        }]
+                    },
 
-                      tooltip: {
-                          headerFormat: '<b>{series.name}</b><br/>',
-                          pointFormat: '{point.x:%Y-%m-%d %H:%M:%S}<br/>{point.y:.2f}'
-                      },
+                    tooltip: {
+                        headerFormat: '<b>{series.name}</b><br/>',
+                        pointFormat: '{point.x:%Y-%m-%d %H:%M:%S}<br/>{point.y:.2f}'
+                    },
 
-                      legend: {
-                          enabled: true
-                      },
+                    legend: {
+                        enabled: true
+                    },
 
-                      exporting: {
-                          enabled: false
-                      },
+                    exporting: {
+                        enabled: false
+                    },
 
-                      series: [{
-                        name: '',
-                        color: '#c00',
-                        data: (function () {
-                          // generate an array of random data
-                          var data = [],
-                            time = (new Date()).getTime(),
-                            i;
-                          for (i = -19; i <= 0; i += 1) {
-                            data.push({
-                              x: time + i * 1000,
-                              y: null
-                            });
-                          }
-                          return data;
-                        }())
-                      }] // end series list
+                    series: [{
+                      name: null,
+                      color: '#c00',
+                      data: (function () {
+                        // generate an array of random data
+                        var data = [],
+                          time = (new Date()).getTime(),
+                          i;
+                        for (i = -19; i <= 0; i += 1) {
+                          data.push({
+                            x: time + i * 1000,
+                            y: null
+                          });
+                        }
+                        return data;
+                      }())
+                    }] // end series list
 
-                    })   // end Highcharts object
-                  );     // end of JQuery append
+                  });   // end Highcharts object
                 });      // end forEach param
             });          // end forEach sensor
           });            // end then
