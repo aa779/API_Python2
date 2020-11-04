@@ -4,3 +4,6 @@ venv/
 __pycache__/
 *.sw[pon]
 requirements-dev.txt
+.eslintrc.*
+node_modules/
+package*
